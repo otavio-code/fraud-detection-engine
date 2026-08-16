@@ -1,0 +1,47 @@
+{
+  "type": "record",
+  "name": "TransactionEvent",
+  "namespace": "br.com.frauddetection.events",
+  "fields": [
+    {
+      "name": "id_evento",
+      "type": "string"
+    },
+    {
+      "name": "id_transacao",
+      "type": "string"
+    },
+    {
+      "name": "id_cliente",
+      "type": "string"
+    },
+    {
+      "name": "id_conta",
+      "type": "string"
+    },
+    {
+      "name": "valor_transacao",
+      "type": {
+        "type": "bytes",
+        "logicalType": "decimal",
+        "precision": 18,
+        "scale": 2
+      }
+    },
+    {
+      "name": "codigo_moeda",
+      "type": "string"
+    },
+    {
+      "name": "tipo_transacao",
+      "type": "string"
+    },
+    {
+    "name": "data_hora_transacao",
+    "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+    }
+    }
+  ]
+}
