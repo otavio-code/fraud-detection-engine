@@ -16,7 +16,11 @@
       "type": "string"
     },
     {
-      "name": "id_conta",
+      "name": "id_conta_origem",
+      "type": "string"
+    },
+    {
+      "name": "id_conta_destino",
       "type": "string"
     },
     {
