@@ -4,6 +4,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
+
 @Component
 public class TransactionConsumer {
     @KafkaListener(
@@ -17,5 +19,7 @@ public class TransactionConsumer {
         System.out.println("Chave: " + record.key());
         System.out.println("Mensagem: " + record.value());
         System.out.println(record.headers());
+        Instant instant = Instant.ofEpochMilli(record.timestamp());
+        System.out.println(instant);
     }
 }
