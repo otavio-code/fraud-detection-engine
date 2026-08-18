@@ -36,7 +36,7 @@ public void consume(ConsumerRecord<String, String> record) {
     System.out.println("Chave: " + record.key());
     System.out.println("Mensagem: " + record.value());
 
-    if (record.value().contains("\"id_transacao\":\"tx-fail\"")) {
+    if (record.value().contains("tx-fail")) {
         System.out.println("Simulando falha no processamento...");
         throw new RuntimeException("Falha proposital");
     }
