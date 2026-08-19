@@ -18,7 +18,7 @@ public class KafkaConsumerConfig {
                         KafkaTemplate,
                         (record, exception) ->
                                 new TopicPartition(
-                                        record.topic() + "+.DLT",
+                                        record.topic() + ".DLT",
                                         record.partition()
                                 )
                 );
