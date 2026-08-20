@@ -21,7 +21,8 @@
     },
     {
       "name": "id_conta_destino",
-      "type": "string"
+      "type": ["null", "string"],
+      "default": null
     },
     {
       "name": "valor_transacao",
@@ -41,11 +42,11 @@
       "type": "string"
     },
     {
-    "name": "data_hora_transacao",
-    "type": {
+      "name": "data_hora_transacao",
+      "type": {
         "type": "long",
         "logicalType": "timestamp-millis"
-    }
+      }
     }
   ]
 }
