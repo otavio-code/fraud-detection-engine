@@ -30,6 +30,14 @@
 		<java.version>25</java.version>
 		<avro.version>1.12.2</avro.version>
 	</properties>
+
+	<repositories>
+		<repository>
+			<id>confluent</id>
+			<url>https://packages.confluent.io/maven/</url>
+		</repository>
+	</repositories>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -44,6 +52,11 @@
 			<groupId>br.com.frauddetection</groupId>
 			<artifactId>event-contracts</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>io.confluent</groupId>
+			<artifactId>kafka-avro-serializer</artifactId>
+			<version>7.6.13</version>
 		</dependency>
 	</dependencies>
 

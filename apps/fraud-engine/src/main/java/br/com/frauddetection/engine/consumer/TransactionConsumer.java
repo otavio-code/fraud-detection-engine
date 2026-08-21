@@ -23,23 +23,21 @@ public class TransactionConsumer {
         System.out.println(instant);
     }
  */
-@KafkaListener(
-        topics = "transactions.v1",
-        groupId = "fraud-engine"
-)
-public void consume(ConsumerRecord<String, String> record) {
+    @KafkaListener(
+            topics = "transactions.v1",
+            groupId = "fraud-engine"
+    )
+    public void consume(TransactionEvent event) {
 
-    System.out.println("Tópico: " + record.topic());
-    System.out.println("Partição: " + record.partition());
-    System.out.println("Offset: " + record.offset());
-    System.out.println("Chave: " + record.key());
-    System.out.println("Mensagem: " + record.value());
-
-    if (record.value().contains("tx-fail")) {
-        System.out.println("Simulando falha no processamento...");
-        throw new RuntimeException("Falha proposital");
+        System.out.println("Transação recebida:");
+        System.out.println("idEvento: " + event.getIdEvento());
+        System.out.println("idTransacao: " + event.getIdTransacao());
+        System.out.println("idCliente: " + event.getIdCliente());
+        System.out.println("contaOrigem: " + event.getIdContaOrigem());
+        System.out.println("contaDestino: " + event.getIdContaDestino());
+        System.out.println("valor: " + event.getValorTransacao());
+        System.out.println("moeda: " + event.getCodigoMoeda());
+        System.out.println("tipo: " + event.getTipoTransacao());
+        System.out.println("dataHora: " + event.getDataHoraTransacao());
     }
-
-    System.out.println("Processamento concluído");
-}
 }
