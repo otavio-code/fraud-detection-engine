@@ -28,6 +28,7 @@
 	</scm>
 	<properties>
 		<java.version>25</java.version>
+		<avro.version>1.12.2</avro.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -40,6 +41,13 @@
 			<artifactId>spring-boot-starter-kafka-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>org.apache.avro</groupId>
+			<artifactId>avro</artifactId>
+			<version>${avro.version}</version>
+			<scope>compile</scope>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -48,6 +56,39 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+
+			<plugin>
+				<groupId>org.apache.avro</groupId>
+				<artifactId>avro-maven-plugin</artifactId>
+				<version>${avro.version}</version>
+
+				<executions>
+					<execution>
+						<phase>generate-sources</phase>
+
+						<goals>
+							<goal>schema</goal>
+						</goals>
+
+						<configuration>
+							<sourceDirectory>
+								${project.basedir}/../../schemas/transactions
+							</sourceDirectory>
+
+							<includes>
+								<include>transaction-event-v1.avsc</include>
+							</includes>
+
+							<outputDirectory>
+								${project.build.directory}/generated-sources/avro
+							</outputDirectory>
+
+							<stringType>String</stringType>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
 		</plugins>
 	</build>
 
