@@ -17,6 +17,19 @@ public class TransactionProducer {
     }
 
     public void send(String key, TransactionEvent event) {
-        kafkaTemplate.send(TOPIC, key, event);
+        kafkaTemplate.send(TOPIC, key, event)
+                .whenComplete((result, ex) -> {
+                    if (ex != null) {
+                        System.err.println("Erro ao publicar transação: " + ex.getMessage());
+                        return;
+                    }
+
+                    System.out.printf(
+                            "Transação publicada. topic=%s partition=%d offset=%d%n",
+                            result.getRecordMetadata().topic(),
+                            result.getRecordMetadata().partition(),
+                            result.getRecordMetadata().offset()
+                    );
+                });
     }
 }
