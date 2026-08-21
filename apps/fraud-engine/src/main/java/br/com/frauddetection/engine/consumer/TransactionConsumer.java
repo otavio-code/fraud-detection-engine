@@ -3,6 +3,7 @@ package br.com.frauddetection.engine.consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import br.com.frauddetection.events.TransactionEvent;
 
 @Component
 public class TransactionConsumer {
