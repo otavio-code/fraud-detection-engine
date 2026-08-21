@@ -82,7 +82,7 @@ public class TransactionEvent extends org.apache.avro.specific.SpecificRecordBas
   private java.lang.String id_cliente;
   private java.lang.String id_conta_origem;
   private java.lang.String id_conta_destino;
-  private java.nio.ByteBuffer valor_transacao;
+  private java.math.BigDecimal valor_transacao;
   private java.lang.String codigo_moeda;
   private java.lang.String tipo_transacao;
   private java.time.Instant data_hora_transacao;
@@ -106,7 +106,7 @@ public class TransactionEvent extends org.apache.avro.specific.SpecificRecordBas
    * @param tipo_transacao The new value for tipo_transacao
    * @param data_hora_transacao The new value for data_hora_transacao
    */
-  public TransactionEvent(java.lang.String id_evento, java.lang.String id_transacao, java.lang.String id_cliente, java.lang.String id_conta_origem, java.lang.String id_conta_destino, java.nio.ByteBuffer valor_transacao, java.lang.String codigo_moeda, java.lang.String tipo_transacao, java.time.Instant data_hora_transacao) {
+  public TransactionEvent(java.lang.String id_evento, java.lang.String id_transacao, java.lang.String id_cliente, java.lang.String id_conta_origem, java.lang.String id_conta_destino, java.math.BigDecimal valor_transacao, java.lang.String codigo_moeda, java.lang.String tipo_transacao, java.time.Instant data_hora_transacao) {
     this.id_evento = id_evento;
     this.id_transacao = id_transacao;
     this.id_cliente = id_cliente;
@@ -148,7 +148,7 @@ public class TransactionEvent extends org.apache.avro.specific.SpecificRecordBas
       null,
       null,
       null,
-      null,
+      new org.apache.avro.Conversions.DecimalConversion(),
       null,
       null,
       new org.apache.avro.data.TimeConversions.TimestampMillisConversion(),
@@ -170,7 +170,7 @@ public class TransactionEvent extends org.apache.avro.specific.SpecificRecordBas
     case 2: id_cliente = value$ != null ? value$.toString() : null; break;
     case 3: id_conta_origem = value$ != null ? value$.toString() : null; break;
     case 4: id_conta_destino = value$ != null ? value$.toString() : null; break;
-    case 5: valor_transacao = (java.nio.ByteBuffer)value$; break;
+    case 5: valor_transacao = (java.math.BigDecimal)value$; break;
     case 6: codigo_moeda = value$ != null ? value$.toString() : null; break;
     case 7: tipo_transacao = value$ != null ? value$.toString() : null; break;
     case 8: data_hora_transacao = (java.time.Instant)value$; break;
@@ -267,7 +267,7 @@ public class TransactionEvent extends org.apache.avro.specific.SpecificRecordBas
    * Gets the value of the 'valor_transacao' field.
    * @return The value of the 'valor_transacao' field.
    */
-  public java.nio.ByteBuffer getValorTransacao() {
+  public java.math.BigDecimal getValorTransacao() {
     return valor_transacao;
   }
 
@@ -276,7 +276,7 @@ public class TransactionEvent extends org.apache.avro.specific.SpecificRecordBas
    * Sets the value of the 'valor_transacao' field.
    * @param value the value to set.
    */
-  public void setValorTransacao(java.nio.ByteBuffer value) {
+  public void setValorTransacao(java.math.BigDecimal value) {
     this.valor_transacao = value;
   }
 
@@ -377,7 +377,7 @@ public class TransactionEvent extends org.apache.avro.specific.SpecificRecordBas
     private java.lang.String id_cliente;
     private java.lang.String id_conta_origem;
     private java.lang.String id_conta_destino;
-    private java.nio.ByteBuffer valor_transacao;
+    private java.math.BigDecimal valor_transacao;
     private java.lang.String codigo_moeda;
     private java.lang.String tipo_transacao;
     private java.time.Instant data_hora_transacao;
@@ -679,7 +679,7 @@ public class TransactionEvent extends org.apache.avro.specific.SpecificRecordBas
       * Gets the value of the 'valor_transacao' field.
       * @return The value.
       */
-    public java.nio.ByteBuffer getValorTransacao() {
+    public java.math.BigDecimal getValorTransacao() {
       return valor_transacao;
     }
 
@@ -689,7 +689,7 @@ public class TransactionEvent extends org.apache.avro.specific.SpecificRecordBas
       * @param value The value of 'valor_transacao'.
       * @return This builder.
       */
-    public br.com.frauddetection.events.TransactionEvent.Builder setValorTransacao(java.nio.ByteBuffer value) {
+    public br.com.frauddetection.events.TransactionEvent.Builder setValorTransacao(java.math.BigDecimal value) {
       validate(fields()[5], value);
       this.valor_transacao = value;
       fieldSetFlags()[5] = true;
@@ -844,7 +844,7 @@ public class TransactionEvent extends org.apache.avro.specific.SpecificRecordBas
         record.id_cliente = fieldSetFlags()[2] ? this.id_cliente : (java.lang.String) defaultValue(fields()[2]);
         record.id_conta_origem = fieldSetFlags()[3] ? this.id_conta_origem : (java.lang.String) defaultValue(fields()[3]);
         record.id_conta_destino = fieldSetFlags()[4] ? this.id_conta_destino : (java.lang.String) defaultValue(fields()[4]);
-        record.valor_transacao = fieldSetFlags()[5] ? this.valor_transacao : (java.nio.ByteBuffer) defaultValue(fields()[5]);
+        record.valor_transacao = fieldSetFlags()[5] ? this.valor_transacao : (java.math.BigDecimal) defaultValue(fields()[5]);
         record.codigo_moeda = fieldSetFlags()[6] ? this.codigo_moeda : (java.lang.String) defaultValue(fields()[6]);
         record.tipo_transacao = fieldSetFlags()[7] ? this.tipo_transacao : (java.lang.String) defaultValue(fields()[7]);
         record.data_hora_transacao = fieldSetFlags()[8] ? this.data_hora_transacao : (java.time.Instant) defaultValue(fields()[8]);

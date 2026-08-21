@@ -55,6 +55,8 @@
                             </outputDirectory>
 
                             <stringType>String</stringType>
+
+                            <enableDecimalLogicalType>true</enableDecimalLogicalType>
                         </configuration>
                     </execution>
                 </executions>
