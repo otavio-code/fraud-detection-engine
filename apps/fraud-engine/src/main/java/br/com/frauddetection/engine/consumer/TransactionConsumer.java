@@ -2,18 +2,27 @@ package br.com.frauddetection.engine.consumer;
 
 import br.com.frauddetection.engine.idempotency.IdempotencyService;
 import br.com.frauddetection.engine.idempotency.IdempotencyStatus;
+import br.com.frauddetection.engine.rules.FraudRuleEngine;
+import br.com.frauddetection.engine.rules.FraudRuleResult;
 import br.com.frauddetection.events.TransactionEvent;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 public class TransactionConsumer {
 
     private final IdempotencyService idempotencyService;
+    private final FraudRuleEngine fraudRuleEngine;
 
-    public TransactionConsumer(IdempotencyService idempotencyService) {
+    public TransactionConsumer(
+            IdempotencyService idempotencyService,
+            FraudRuleEngine fraudRuleEngine
+    ) {
         this.idempotencyService = idempotencyService;
+        this.fraudRuleEngine = fraudRuleEngine;
     }
 
     @KafkaListener(
@@ -82,5 +91,20 @@ public class TransactionConsumer {
         System.out.println("moeda: " + event.getCodigoMoeda());
         System.out.println("tipo: " + event.getTipoTransacao());
         System.out.println("dataHora: " + event.getDataHoraTransacao());
+
+        List<FraudRuleResult> resultados =
+                fraudRuleEngine.evaluate(event);
+
+        if (resultados.isEmpty()) {
+            System.out.println("Nenhuma suspeita detectada.");
+            return;
+        }
+
+        System.out.println("Transação suspeita detectada:");
+
+        resultados.forEach(resultado -> {
+            System.out.println("Regra: " + resultado.regra());
+            System.out.println("Motivo: " + resultado.motivo());
+        });
     }
 }
