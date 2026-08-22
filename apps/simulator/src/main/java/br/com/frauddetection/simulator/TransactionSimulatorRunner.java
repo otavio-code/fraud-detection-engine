@@ -25,7 +25,7 @@ public class TransactionSimulatorRunner implements CommandLineRunner {
                 .setIdCliente("001")
                 .setIdContaOrigem("123")
                 .setIdContaDestino("456")
-                .setValorTransacao(new BigDecimal("100.00"))
+                .setValorTransacao(new BigDecimal("15000.00"))
                 .setCodigoMoeda("BRL")
                 .setTipoTransacao("PIX")
                 .setDataHoraTransacao(Instant.now())
