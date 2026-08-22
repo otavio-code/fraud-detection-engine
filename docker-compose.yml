@@ -65,3 +65,29 @@ services:
         apk add --no-cache curl jq &&
         /bin/sh /register-schema.sh
       "
+
+  redis:
+    image: redis:8.10-alpine
+    container_name: fraud-redis
+
+    ports:
+      - "6379:6379"
+
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - everysec
+
+    volumes:
+      - redis-data:/data
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  redis-data:
