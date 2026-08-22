@@ -1,5 +1,7 @@
 package br.com.frauddetection.engine.consumer;
 
+import br.com.frauddetection.engine.idempotency.IdempotencyService;
+import br.com.frauddetection.engine.idempotency.IdempotencyStatus;
 import br.com.frauddetection.events.TransactionEvent;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -8,13 +10,61 @@ import org.springframework.stereotype.Component;
 @Component
 public class TransactionConsumer {
 
+    private final IdempotencyService idempotencyService;
+
+    public TransactionConsumer(IdempotencyService idempotencyService) {
+        this.idempotencyService = idempotencyService;
+    }
+
     @KafkaListener(
             topics = "transactions.v1",
             groupId = "fraud-engine"
     )
-    public void consume(ConsumerRecord<String, TransactionEvent> record) {
+    public void consume(
+            ConsumerRecord<String, TransactionEvent> record
+    ) {
 
         TransactionEvent event = record.value();
+
+        IdempotencyStatus status =
+                idempotencyService.tryAcquire(event.getIdEvento());
+
+        if (status == IdempotencyStatus.PROCESSADO) {
+            System.out.println(
+                    "Evento já processado. Ignorando: "
+                            + event.getIdEvento()
+            );
+            return;
+        }
+
+        if (status == IdempotencyStatus.PROCESSANDO) {
+            throw new IllegalStateException(
+                    "Evento já está sendo processado: "
+                            + event.getIdEvento()
+            );
+        }
+
+        try {
+            process(record, event);
+
+            idempotencyService.markProcessed(
+                    event.getIdEvento()
+            );
+
+        } catch (Exception exception) {
+
+            idempotencyService.release(
+                    event.getIdEvento()
+            );
+
+            throw exception;
+        }
+    }
+
+    private void process(
+            ConsumerRecord<String, TransactionEvent> record,
+            TransactionEvent event
+    ) {
 
         System.out.println("Evento Kafka recebido:");
         System.out.println("Tópico: " + record.topic());
