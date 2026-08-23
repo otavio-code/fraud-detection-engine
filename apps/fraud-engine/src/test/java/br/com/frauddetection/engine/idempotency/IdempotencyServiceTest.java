@@ -91,6 +91,7 @@ class IdempotencyServiceTest {
 
     @Test
     void deveRetornarProcessandoQuandoEventoJaEstiverSendoProcessado() {
+
         // Arrange
         StringRedisTemplate redisTemplate =
                 Mockito.mock(StringRedisTemplate.class);
@@ -129,7 +130,53 @@ class IdempotencyServiceTest {
                 IdempotencyStatus.PROCESSANDO,
                 resultado
         );
+    }
 
+    @Test
+    void deveMarcarEventoComoProcessado() {
 
+        // Arrange
+        StringRedisTemplate redisTemplate =
+                Mockito.mock(StringRedisTemplate.class);
+
+        ValueOperations<String, String> valueOperations =
+                Mockito.mock(ValueOperations.class);
+
+        when(redisTemplate.opsForValue())
+                .thenReturn(valueOperations);
+
+        IdempotencyService service =
+                new IdempotencyService(redisTemplate);
+
+        // Act
+        service.markProcessed("004");
+
+        // Assert
+        Mockito.verify(valueOperations)
+                .set(
+                        "fraud:idempotency:event:004",
+                        "PROCESSADO",
+                        Duration.ofHours(24)
+                );
+    }
+
+    @Test
+    void deveLiberarEventoQuandoOcorrerErro() {
+
+        // Arrange
+        StringRedisTemplate redisTemplate =
+                Mockito.mock(StringRedisTemplate.class);
+
+        IdempotencyService service =
+                new IdempotencyService(redisTemplate);
+
+        // Act
+        service.release("005");
+
+        // Assert
+        Mockito.verify(redisTemplate)
+                .delete(
+                        "fraud:idempotency:event:005"
+                );
     }
 }
