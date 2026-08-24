@@ -2,6 +2,7 @@ package br.com.frauddetection.engine.alert;
 
 import br.com.frauddetection.engine.alert.FraudAlert;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,8 +22,7 @@ public class AlertKafkaProducerConfig {
     @Bean
     public ProducerFactory<String, FraudAlert> alertProducerFactory(
             @Value("${spring.kafka.bootstrap-servers}")
-            String bootstrapServers,
-            ObjectMapper objectMapper
+            String bootstrapServers
     ) {
 
         Map<String, Object> properties =
@@ -31,6 +31,13 @@ public class AlertKafkaProducerConfig {
         properties.put(
                 ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
                 bootstrapServers
+        );
+
+        ObjectMapper objectMapper =
+                new ObjectMapper();
+
+        objectMapper.registerModule(
+                new JavaTimeModule()
         );
 
         JsonSerializer<FraudAlert> jsonSerializer =
