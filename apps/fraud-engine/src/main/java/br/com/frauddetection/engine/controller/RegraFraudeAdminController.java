@@ -1,6 +1,7 @@
 package br.com.frauddetection.engine.controller;
 
 import br.com.frauddetection.engine.configuration.ConfiguracaoRegraService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -12,13 +13,17 @@ public class RegraFraudeAdminController {
     public RegraFraudeAdminController(
             ConfiguracaoRegraService configuracaoRegraService
     ) {
-        this.configuracaoRegraService = configuracaoRegraService;
+        this.configuracaoRegraService =
+                configuracaoRegraService;
     }
 
     @PutMapping("/transacao-valor-alto/limite")
     public void atualizarLimite(
-            @RequestBody UpdateLimitRequest request
+            @Valid
+            @RequestBody
+            UpdateLimitRequest request
     ) {
+
         configuracaoRegraService
                 .atualizarLimiteTransacaoValorAlto(
                         request.limite()

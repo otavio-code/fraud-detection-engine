@@ -2,8 +2,11 @@ package br.com.frauddetection.engine.consumer;
 
 import br.com.frauddetection.engine.idempotency.IdempotencyService;
 import br.com.frauddetection.engine.idempotency.IdempotencyStatus;
+import br.com.frauddetection.engine.observability.FraudMetrics;
 import br.com.frauddetection.engine.rules.FraudRuleEngine;
+import br.com.frauddetection.engine.rules.FraudRuleResult;
 import br.com.frauddetection.events.TransactionEvent;
+import io.micrometer.core.instrument.Timer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -12,7 +15,6 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
 import static org.mockito.Mockito.when;
 
 class TransactionConsumerTest {
@@ -20,12 +22,15 @@ class TransactionConsumerTest {
     @Test
     void deveIgnorarEventoQuandoJaEstiverProcessado() {
 
-        //Arrange
+        // Arrange
         IdempotencyService idempotencyService =
                 Mockito.mock(IdempotencyService.class);
 
         FraudRuleEngine fraudRuleEngine =
                 Mockito.mock(FraudRuleEngine.class);
+
+        FraudMetrics fraudMetrics =
+                Mockito.mock(FraudMetrics.class);
 
         TransactionEvent event =
                 Mockito.mock(TransactionEvent.class);
@@ -48,19 +53,25 @@ class TransactionConsumerTest {
         TransactionConsumer consumer =
                 new TransactionConsumer(
                         idempotencyService,
-                        fraudRuleEngine
+                        fraudRuleEngine,
+                        fraudMetrics
                 );
 
-        //Act
+        // Act
         consumer.consume(record);
 
-        //Assert
+        // Assert
         Mockito.verifyNoInteractions(fraudRuleEngine);
 
         Mockito.verify(
                 idempotencyService,
                 Mockito.never()
         ).markProcessed(Mockito.anyString());
+
+        Mockito.verify(
+                fraudMetrics,
+                Mockito.never()
+        ).iniciarProcessamento();
     }
 
     @Test
@@ -72,6 +83,9 @@ class TransactionConsumerTest {
 
         FraudRuleEngine fraudRuleEngine =
                 Mockito.mock(FraudRuleEngine.class);
+
+        FraudMetrics fraudMetrics =
+                Mockito.mock(FraudMetrics.class);
 
         TransactionEvent event =
                 Mockito.mock(TransactionEvent.class);
@@ -94,7 +108,8 @@ class TransactionConsumerTest {
         TransactionConsumer consumer =
                 new TransactionConsumer(
                         idempotencyService,
-                        fraudRuleEngine
+                        fraudRuleEngine,
+                        fraudMetrics
                 );
 
         // Act + Assert
@@ -115,6 +130,11 @@ class TransactionConsumerTest {
                 idempotencyService,
                 Mockito.never()
         ).markProcessed(Mockito.anyString());
+
+        Mockito.verify(
+                fraudMetrics,
+                Mockito.never()
+        ).iniciarProcessamento();
     }
 
     @Test
@@ -126,6 +146,12 @@ class TransactionConsumerTest {
 
         FraudRuleEngine fraudRuleEngine =
                 Mockito.mock(FraudRuleEngine.class);
+
+        FraudMetrics fraudMetrics =
+                Mockito.mock(FraudMetrics.class);
+
+        Timer.Sample sample =
+                Mockito.mock(Timer.Sample.class);
 
         TransactionEvent event =
                 Mockito.mock(TransactionEvent.class);
@@ -151,10 +177,17 @@ class TransactionConsumerTest {
                 List.of()
         );
 
+        when(
+                fraudMetrics.iniciarProcessamento()
+        ).thenReturn(
+                sample
+        );
+
         TransactionConsumer consumer =
                 new TransactionConsumer(
                         idempotencyService,
-                        fraudRuleEngine
+                        fraudRuleEngine,
+                        fraudMetrics
                 );
 
         // Act
@@ -171,6 +204,12 @@ class TransactionConsumerTest {
                 idempotencyService,
                 Mockito.never()
         ).release(Mockito.anyString());
+
+        Mockito.verify(fraudMetrics)
+                .registrarTransacaoProcessada();
+
+        Mockito.verify(fraudMetrics)
+                .finalizarProcessamento(sample);
     }
 
     @Test
@@ -182,6 +221,12 @@ class TransactionConsumerTest {
 
         FraudRuleEngine fraudRuleEngine =
                 Mockito.mock(FraudRuleEngine.class);
+
+        FraudMetrics fraudMetrics =
+                Mockito.mock(FraudMetrics.class);
+
+        Timer.Sample sample =
+                Mockito.mock(Timer.Sample.class);
 
         TransactionEvent event =
                 Mockito.mock(TransactionEvent.class);
@@ -207,10 +252,17 @@ class TransactionConsumerTest {
                 new RuntimeException("Erro ao avaliar regras")
         );
 
+        when(
+                fraudMetrics.iniciarProcessamento()
+        ).thenReturn(
+                sample
+        );
+
         TransactionConsumer consumer =
                 new TransactionConsumer(
                         idempotencyService,
-                        fraudRuleEngine
+                        fraudRuleEngine,
+                        fraudMetrics
                 );
 
         // Act + Assert
@@ -232,5 +284,196 @@ class TransactionConsumerTest {
                 idempotencyService,
                 Mockito.never()
         ).markProcessed(Mockito.anyString());
+
+        Mockito.verify(
+                fraudMetrics,
+                Mockito.never()
+        ).registrarTransacaoProcessada();
+
+        Mockito.verify(fraudMetrics)
+                .finalizarProcessamento(sample);
+    }
+
+    @Test
+    void deveRegistrarMetricasQuandoTransacaoForSuspeita() {
+
+        // Arrange
+        IdempotencyService idempotencyService =
+                Mockito.mock(IdempotencyService.class);
+
+        FraudRuleEngine fraudRuleEngine =
+                Mockito.mock(FraudRuleEngine.class);
+
+        FraudMetrics fraudMetrics =
+                Mockito.mock(FraudMetrics.class);
+
+        Timer.Sample sample =
+                Mockito.mock(Timer.Sample.class);
+
+        TransactionEvent event =
+                Mockito.mock(TransactionEvent.class);
+
+        ConsumerRecord<String, TransactionEvent> record =
+                Mockito.mock(ConsumerRecord.class);
+
+        when(record.value())
+                .thenReturn(event);
+
+        when(event.getIdEvento())
+                .thenReturn("evento-005");
+
+        when(
+                idempotencyService.tryAcquire("evento-005")
+        ).thenReturn(
+                IdempotencyStatus.ADQUIRIDO
+        );
+
+        FraudRuleResult resultadoSuspeito =
+                new FraudRuleResult(
+                        "TRANSACAO_VALOR_ALTO",
+                        true,
+                        "Transação acima do limite"
+                );
+
+        when(
+                fraudRuleEngine.evaluate(event)
+        ).thenReturn(
+                List.of(resultadoSuspeito)
+        );
+
+        when(
+                fraudMetrics.iniciarProcessamento()
+        ).thenReturn(
+                sample
+        );
+
+        TransactionConsumer consumer =
+                new TransactionConsumer(
+                        idempotencyService,
+                        fraudRuleEngine,
+                        fraudMetrics
+                );
+
+        // Act
+        consumer.consume(record);
+
+        // Assert
+        Mockito.verify(fraudMetrics)
+                .registrarTransacaoProcessada();
+
+        Mockito.verify(fraudMetrics)
+                .registrarTransacaoSuspeita();
+
+        Mockito.verify(fraudMetrics)
+                .registrarRegraSuspeita(
+                        "TRANSACAO_VALOR_ALTO"
+                );
+
+        Mockito.verify(fraudMetrics)
+                .finalizarProcessamento(sample);
+
+        Mockito.verify(idempotencyService)
+                .markProcessed("evento-005");
+    }
+
+    @Test
+    void deveRegistrarUmaTransacaoSuspeitaEContabilizarTodasAsRegrasDisparadas() {
+
+        // Arrange
+        IdempotencyService idempotencyService =
+                Mockito.mock(IdempotencyService.class);
+
+        FraudRuleEngine fraudRuleEngine =
+                Mockito.mock(FraudRuleEngine.class);
+
+        FraudMetrics fraudMetrics =
+                Mockito.mock(FraudMetrics.class);
+
+        Timer.Sample sample =
+                Mockito.mock(Timer.Sample.class);
+
+        TransactionEvent event =
+                Mockito.mock(TransactionEvent.class);
+
+        ConsumerRecord<String, TransactionEvent> record =
+                Mockito.mock(ConsumerRecord.class);
+
+        when(record.value())
+                .thenReturn(event);
+
+        when(event.getIdEvento())
+                .thenReturn("evento-006");
+
+        when(
+                idempotencyService.tryAcquire("evento-006")
+        ).thenReturn(
+                IdempotencyStatus.ADQUIRIDO
+        );
+
+        FraudRuleResult regraValorAlto =
+                new FraudRuleResult(
+                        "TRANSACAO_VALOR_ALTO",
+                        true,
+                        "Transação acima do limite"
+                );
+
+        FraudRuleResult regraHorarioIncomum =
+                new FraudRuleResult(
+                        "TRANSACAO_HORARIO_INCOMUM",
+                        true,
+                        "Transação realizada em horário incomum"
+                );
+
+        when(
+                fraudRuleEngine.evaluate(event)
+        ).thenReturn(
+                List.of(
+                        regraValorAlto,
+                        regraHorarioIncomum
+                )
+        );
+
+        when(
+                fraudMetrics.iniciarProcessamento()
+        ).thenReturn(
+                sample
+        );
+
+        TransactionConsumer consumer =
+                new TransactionConsumer(
+                        idempotencyService,
+                        fraudRuleEngine,
+                        fraudMetrics
+                );
+
+        // Act
+        consumer.consume(record);
+
+        // Assert
+        Mockito.verify(
+                fraudMetrics,
+                Mockito.times(1)
+        ).registrarTransacaoSuspeita();
+
+        Mockito.verify(fraudMetrics)
+                .registrarRegraSuspeita(
+                        "TRANSACAO_VALOR_ALTO"
+                );
+
+        Mockito.verify(fraudMetrics)
+                .registrarRegraSuspeita(
+                        "TRANSACAO_HORARIO_INCOMUM"
+                );
+
+        Mockito.verify(
+                fraudMetrics,
+                Mockito.times(1)
+        ).registrarTransacaoProcessada();
+
+        Mockito.verify(fraudMetrics)
+                .finalizarProcessamento(sample);
+
+        Mockito.verify(idempotencyService)
+                .markProcessed("evento-006");
     }
 }

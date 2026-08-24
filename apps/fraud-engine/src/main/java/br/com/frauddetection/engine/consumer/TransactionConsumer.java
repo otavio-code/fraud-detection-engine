@@ -2,10 +2,14 @@ package br.com.frauddetection.engine.consumer;
 
 import br.com.frauddetection.engine.idempotency.IdempotencyService;
 import br.com.frauddetection.engine.idempotency.IdempotencyStatus;
+import br.com.frauddetection.engine.observability.FraudMetrics;
 import br.com.frauddetection.engine.rules.FraudRuleEngine;
 import br.com.frauddetection.engine.rules.FraudRuleResult;
 import br.com.frauddetection.events.TransactionEvent;
+import io.micrometer.core.instrument.Timer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
@@ -14,20 +18,26 @@ import java.util.List;
 @Component
 public class TransactionConsumer {
 
+    private static final Logger log =
+            LoggerFactory.getLogger(TransactionConsumer.class);
+
     private final IdempotencyService idempotencyService;
     private final FraudRuleEngine fraudRuleEngine;
+    private final FraudMetrics fraudMetrics;
 
     public TransactionConsumer(
             IdempotencyService idempotencyService,
-            FraudRuleEngine fraudRuleEngine
+            FraudRuleEngine fraudRuleEngine,
+            FraudMetrics fraudMetrics
     ) {
         this.idempotencyService = idempotencyService;
         this.fraudRuleEngine = fraudRuleEngine;
+        this.fraudMetrics = fraudMetrics;
     }
 
     @KafkaListener(
-            topics = "transactions.v1",
-            groupId = "fraud-engine"
+            topics = "${fraud.kafka.transaction-topic}",
+            groupId = "${fraud.kafka.consumer-group}"
     )
     public void consume(
             ConsumerRecord<String, TransactionEvent> record
@@ -36,25 +46,44 @@ public class TransactionConsumer {
         TransactionEvent event = record.value();
 
         IdempotencyStatus status =
-                idempotencyService.tryAcquire(event.getIdEvento());
+                idempotencyService.tryAcquire(
+                        event.getIdEvento()
+                );
 
         if (status == IdempotencyStatus.PROCESSADO) {
-            System.out.println(
-                    "Evento já processado. Ignorando: "
-                            + event.getIdEvento()
+
+            log.info(
+                    "Evento já processado. Ignorando. idEvento={}",
+                    event.getIdEvento()
             );
+
             return;
         }
 
         if (status == IdempotencyStatus.PROCESSANDO) {
+
+            log.warn(
+                    "Evento já está sendo processado. idEvento={}",
+                    event.getIdEvento()
+            );
+
             throw new IllegalStateException(
                     "Evento já está sendo processado: "
                             + event.getIdEvento()
             );
         }
 
+        Timer.Sample sample =
+                fraudMetrics.iniciarProcessamento();
+
         try {
-            process(record, event);
+
+            process(
+                    record,
+                    event
+            );
+
+            fraudMetrics.registrarTransacaoProcessada();
 
             idempotencyService.markProcessed(
                     event.getIdEvento()
@@ -66,7 +95,22 @@ public class TransactionConsumer {
                     event.getIdEvento()
             );
 
+            log.error(
+                    "Erro ao processar evento. idEvento={} topic={} partition={} offset={}",
+                    event.getIdEvento(),
+                    record.topic(),
+                    record.partition(),
+                    record.offset(),
+                    exception
+            );
+
             throw exception;
+
+        } finally {
+
+            fraudMetrics.finalizarProcessamento(
+                    sample
+            );
         }
     }
 
@@ -75,36 +119,47 @@ public class TransactionConsumer {
             TransactionEvent event
     ) {
 
-        System.out.println("Evento Kafka recebido:");
-        System.out.println("Tópico: " + record.topic());
-        System.out.println("Partição: " + record.partition());
-        System.out.println("Offset: " + record.offset());
-        System.out.println("Chave: " + record.key());
-
-        System.out.println("Transação:");
-        System.out.println("idEvento: " + event.getIdEvento());
-        System.out.println("idTransacao: " + event.getIdTransacao());
-        System.out.println("idCliente: " + event.getIdCliente());
-        System.out.println("contaOrigem: " + event.getIdContaOrigem());
-        System.out.println("contaDestino: " + event.getIdContaDestino());
-        System.out.println("valor: " + event.getValorTransacao());
-        System.out.println("moeda: " + event.getCodigoMoeda());
-        System.out.println("tipo: " + event.getTipoTransacao());
-        System.out.println("dataHora: " + event.getDataHoraTransacao());
+        log.info(
+                "Evento Kafka recebido. topic={} partition={} offset={} key={} idEvento={} idTransacao={}",
+                record.topic(),
+                record.partition(),
+                record.offset(),
+                record.key(),
+                event.getIdEvento(),
+                event.getIdTransacao()
+        );
 
         List<FraudRuleResult> resultados =
-                fraudRuleEngine.evaluate(event);
+                fraudRuleEngine.evaluate(
+                        event
+                );
 
         if (resultados.isEmpty()) {
-            System.out.println("Nenhuma suspeita detectada.");
+
+            log.info(
+                    "Nenhuma suspeita detectada. idEvento={} idTransacao={}",
+                    event.getIdEvento(),
+                    event.getIdTransacao()
+            );
+
             return;
         }
 
-        System.out.println("Transação suspeita detectada:");
+        fraudMetrics.registrarTransacaoSuspeita();
 
         resultados.forEach(resultado -> {
-            System.out.println("Regra: " + resultado.regra());
-            System.out.println("Motivo: " + resultado.motivo());
+
+            fraudMetrics.registrarRegraSuspeita(
+                    resultado.regra()
+            );
+
+            log.warn(
+                    "Transação suspeita detectada. idEvento={} idTransacao={} regra={} motivo={}",
+                    event.getIdEvento(),
+                    event.getIdTransacao(),
+                    resultado.regra(),
+                    resultado.motivo()
+            );
         });
     }
 }
