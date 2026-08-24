@@ -142,5 +142,13 @@ services:
       timeout: 3s
       retries: 10
 
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: fraud-mailpit
+
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
 volumes:
   redis-data:
