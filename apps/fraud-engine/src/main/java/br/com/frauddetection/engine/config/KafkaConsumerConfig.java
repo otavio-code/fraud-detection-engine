@@ -3,6 +3,7 @@ package br.com.frauddetection.engine.config;
 import br.com.frauddetection.engine.observability.FraudMetrics;
 import org.apache.kafka.common.TopicPartition;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -17,7 +18,9 @@ public class KafkaConsumerConfig {
     public DefaultErrorHandler kafkaErrorHandler(
             @Qualifier("dltKafkaTemplate")
             KafkaTemplate<Object, Object> kafkaTemplate,
-            FraudMetrics fraudMetrics
+            FraudMetrics fraudMetrics,
+            @Value("${fraud.kafka.dlt-topic}")
+            String dltTopic
     ) {
 
         DeadLetterPublishingRecoverer recoverer =
@@ -28,7 +31,7 @@ public class KafkaConsumerConfig {
                             fraudMetrics.registrarEnvioDlt();
 
                             return new TopicPartition(
-                                    record.topic() + ".DLT",
+                                    dltTopic,
                                     record.partition()
                             );
                         }
