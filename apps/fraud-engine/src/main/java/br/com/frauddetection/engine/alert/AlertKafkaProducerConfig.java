@@ -1,6 +1,7 @@
-package br.com.frauddetection.engine.config;
+package br.com.frauddetection.engine.alert;
 
 import br.com.frauddetection.engine.alert.FraudAlert;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,10 +19,10 @@ import java.util.Map;
 public class AlertKafkaProducerConfig {
 
     @Bean
-    public ProducerFactory<String, FraudAlert>
-    alertProducerFactory(
+    public ProducerFactory<String, FraudAlert> alertProducerFactory(
             @Value("${spring.kafka.bootstrap-servers}")
-            String bootstrapServers
+            String bootstrapServers,
+            ObjectMapper objectMapper
     ) {
 
         Map<String, Object> properties =
@@ -32,26 +33,21 @@ public class AlertKafkaProducerConfig {
                 bootstrapServers
         );
 
-        properties.put(
-                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
-                StringSerializer.class
-        );
-
-        properties.put(
-                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
-                JsonSerializer.class
-        );
+        JsonSerializer<FraudAlert> jsonSerializer =
+                new JsonSerializer<>(
+                        objectMapper
+                );
 
         return new DefaultKafkaProducerFactory<>(
-                properties
+                properties,
+                new StringSerializer(),
+                jsonSerializer
         );
     }
 
     @Bean
-    public KafkaTemplate<String, FraudAlert>
-    alertKafkaTemplate(
-            ProducerFactory<String, FraudAlert>
-                    alertProducerFactory
+    public KafkaTemplate<String, FraudAlert> alertKafkaTemplate(
+            ProducerFactory<String, FraudAlert> alertProducerFactory
     ) {
 
         return new KafkaTemplate<>(
