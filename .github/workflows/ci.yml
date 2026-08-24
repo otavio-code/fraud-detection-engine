@@ -54,6 +54,10 @@ jobs:
     name: Coverage
     runs-on: ubuntu-latest
 
+    needs:
+      - build
+      - tests
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -65,7 +69,7 @@ jobs:
           java-version: '25'
           cache: maven
 
-      - name: Run coverage
+      - name: Generate coverage report
         run: mvn --batch-mode clean verify
 
       - name: Upload JaCoCo report
@@ -75,4 +79,4 @@ jobs:
           name: jacoco-report
           path: apps/fraud-engine/target/site/jacoco/
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 7
