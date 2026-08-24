@@ -35,6 +35,11 @@ O repositório está organizado como um monorepo:
 
 ```text
 fraud-detection-engine/
+├── .github/
+│   └── workflows/
+│       ├── build.yml
+│       ├── test.yml
+│       └── coverage.yml
 ├── apps/
 │   ├── fraud-engine/       # Consumer e motor de fraude
 │   └── simulator/          # Producer para testes
@@ -133,6 +138,45 @@ GET /actuator/metrics
 GET /actuator/prometheus
 ```
 
+## CI e cobertura de testes
+
+O projeto possui pipelines independentes no GitHub Actions para validar build, testes e cobertura de código.
+
+| Pipeline | Responsabilidade |
+|---|---|
+| **Build** | Compila e empacota o monorepo sem executar os testes |
+| **Tests** | Executa a suíte automatizada de testes |
+| **Coverage** | Executa os testes, gera o relatório JaCoCo e valida a cobertura mínima |
+
+Os workflows estão disponíveis em:
+
+```text
+.github/workflows/
+├── build.yml
+├── test.yml
+└── coverage.yml
+```
+
+A pipeline de cobertura utiliza **JaCoCo** e exige no mínimo:
+
+```text
+90% de cobertura de linhas
+```
+
+Cobertura atual do `fraud-engine`:
+
+| Métrica | Cobertura |
+|---|---:|
+| Instruções | **93%** |
+| Linhas | **93%** |
+| Branches | **83%** |
+
+O relatório HTML gerado pelo JaCoCo fica disponível em:
+
+```text
+apps/fraud-engine/target/site/jacoco/index.html
+```
+
 ## Executando
 
 ### Pré-requisitos
@@ -164,6 +208,8 @@ event-contracts
 fraud-engine
 simulator
 ```
+
+O comando `verify` também gera o relatório JaCoCo e valida a cobertura mínima configurada.
 
 ### 3. Executar o Fraud Engine
 
@@ -199,6 +245,8 @@ transactions.v1
 | Redis | Idempotência e regra de velocidade |
 | Micrometer | Métricas |
 | Spring Boot Actuator | Exposição das métricas e health check |
+| JaCoCo | Cobertura de testes |
+| GitHub Actions | Integração contínua |
 | JUnit 5 / Mockito | Testes |
 | Maven | Build |
 | Docker Compose | Infraestrutura local |
@@ -218,7 +266,13 @@ FraudMetrics
 RegraFraudeAdminController
 ```
 
-Para executar toda a suíte:
+Para executar somente os testes:
+
+```bash
+mvn test
+```
+
+Para executar a validação completa do monorepo, incluindo testes e coverage:
 
 ```bash
 mvn clean verify
@@ -240,3 +294,9 @@ Falhas de processamento são submetidas a novas tentativas. Eventos que continua
 
 **Métricas**  
 O processamento é instrumentado com Micrometer, permitindo acompanhar volume de transações, suspeitas identificadas, regras acionadas, envios para DLT e tempo de processamento.
+
+**CI**  
+Build, testes e cobertura são validados em pipelines independentes, facilitando a identificação de falhas e evitando regressões.
+
+**Cobertura de testes**  
+O JaCoCo gera o relatório de cobertura e impede que o build de coverage seja aprovado caso a cobertura de linhas do `fraud-engine` fique abaixo de **90%**.
