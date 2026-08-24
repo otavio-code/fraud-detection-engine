@@ -1,5 +1,6 @@
 package br.com.frauddetection.engine.consumer;
 
+import br.com.frauddetection.engine.alert.FraudAlertService;
 import br.com.frauddetection.engine.idempotency.IdempotencyService;
 import br.com.frauddetection.engine.idempotency.IdempotencyStatus;
 import br.com.frauddetection.engine.observability.FraudMetrics;
@@ -24,15 +25,18 @@ public class TransactionConsumer {
     private final IdempotencyService idempotencyService;
     private final FraudRuleEngine fraudRuleEngine;
     private final FraudMetrics fraudMetrics;
+    private final FraudAlertService fraudAlertService;
 
     public TransactionConsumer(
             IdempotencyService idempotencyService,
             FraudRuleEngine fraudRuleEngine,
-            FraudMetrics fraudMetrics
+            FraudMetrics fraudMetrics,
+            FraudAlertService fraudAlertService
     ) {
         this.idempotencyService = idempotencyService;
         this.fraudRuleEngine = fraudRuleEngine;
         this.fraudMetrics = fraudMetrics;
+        this.fraudAlertService = fraudAlertService;
     }
 
     @KafkaListener(
@@ -146,6 +150,11 @@ public class TransactionConsumer {
         }
 
         fraudMetrics.registrarTransacaoSuspeita();
+
+        fraudAlertService.enviarAlertas(
+                event,
+                resultados
+        );
 
         resultados.forEach(resultado -> {
 

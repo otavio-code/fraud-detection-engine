@@ -45,13 +45,13 @@ public class TransactionSimulatorRunner implements CommandLineRunner {
     private TransactionEvent criarEvento(int numero) {
 
         return TransactionEvent.newBuilder()
-                .setIdEvento("evento-" + numero)
+                .setIdEvento("evento-101" + numero)
                 .setIdTransacao("transacao-" + numero)
                 .setIdCliente("cliente-001")
                 .setIdContaOrigem("123")
                 .setIdContaDestino("456")
                 .setValorTransacao(
-                        new BigDecimal("100.00")
+                        new BigDecimal("100000.00")
                 )
                 .setCodigoMoeda("BRL")
                 .setTipoTransacao("PIX")

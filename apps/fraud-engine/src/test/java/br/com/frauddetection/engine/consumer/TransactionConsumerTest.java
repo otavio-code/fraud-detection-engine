@@ -1,5 +1,6 @@
 package br.com.frauddetection.engine.consumer;
 
+import br.com.frauddetection.engine.alert.FraudAlertService;
 import br.com.frauddetection.engine.idempotency.IdempotencyService;
 import br.com.frauddetection.engine.idempotency.IdempotencyStatus;
 import br.com.frauddetection.engine.observability.FraudMetrics;
@@ -32,6 +33,9 @@ class TransactionConsumerTest {
         FraudMetrics fraudMetrics =
                 Mockito.mock(FraudMetrics.class);
 
+        FraudAlertService fraudAlertService =
+                Mockito.mock(FraudAlertService.class);
+
         TransactionEvent event =
                 Mockito.mock(TransactionEvent.class);
 
@@ -54,7 +58,8 @@ class TransactionConsumerTest {
                 new TransactionConsumer(
                         idempotencyService,
                         fraudRuleEngine,
-                        fraudMetrics
+                        fraudMetrics,
+                        fraudAlertService
                 );
 
         // Act
@@ -62,6 +67,7 @@ class TransactionConsumerTest {
 
         // Assert
         Mockito.verifyNoInteractions(fraudRuleEngine);
+        Mockito.verifyNoInteractions(fraudAlertService);
 
         Mockito.verify(
                 idempotencyService,
@@ -87,6 +93,9 @@ class TransactionConsumerTest {
         FraudMetrics fraudMetrics =
                 Mockito.mock(FraudMetrics.class);
 
+        FraudAlertService fraudAlertService =
+                Mockito.mock(FraudAlertService.class);
+
         TransactionEvent event =
                 Mockito.mock(TransactionEvent.class);
 
@@ -109,7 +118,8 @@ class TransactionConsumerTest {
                 new TransactionConsumer(
                         idempotencyService,
                         fraudRuleEngine,
-                        fraudMetrics
+                        fraudMetrics,
+                        fraudAlertService
                 );
 
         // Act + Assert
@@ -125,6 +135,7 @@ class TransactionConsumerTest {
         );
 
         Mockito.verifyNoInteractions(fraudRuleEngine);
+        Mockito.verifyNoInteractions(fraudAlertService);
 
         Mockito.verify(
                 idempotencyService,
@@ -149,6 +160,9 @@ class TransactionConsumerTest {
 
         FraudMetrics fraudMetrics =
                 Mockito.mock(FraudMetrics.class);
+
+        FraudAlertService fraudAlertService =
+                Mockito.mock(FraudAlertService.class);
 
         Timer.Sample sample =
                 Mockito.mock(Timer.Sample.class);
@@ -187,7 +201,8 @@ class TransactionConsumerTest {
                 new TransactionConsumer(
                         idempotencyService,
                         fraudRuleEngine,
-                        fraudMetrics
+                        fraudMetrics,
+                        fraudAlertService
                 );
 
         // Act
@@ -196,6 +211,8 @@ class TransactionConsumerTest {
         // Assert
         Mockito.verify(fraudRuleEngine)
                 .evaluate(event);
+
+        Mockito.verifyNoInteractions(fraudAlertService);
 
         Mockito.verify(idempotencyService)
                 .markProcessed("evento-003");
@@ -224,6 +241,9 @@ class TransactionConsumerTest {
 
         FraudMetrics fraudMetrics =
                 Mockito.mock(FraudMetrics.class);
+
+        FraudAlertService fraudAlertService =
+                Mockito.mock(FraudAlertService.class);
 
         Timer.Sample sample =
                 Mockito.mock(Timer.Sample.class);
@@ -262,7 +282,8 @@ class TransactionConsumerTest {
                 new TransactionConsumer(
                         idempotencyService,
                         fraudRuleEngine,
-                        fraudMetrics
+                        fraudMetrics,
+                        fraudAlertService
                 );
 
         // Act + Assert
@@ -276,6 +297,8 @@ class TransactionConsumerTest {
                 "Erro ao avaliar regras",
                 exception.getMessage()
         );
+
+        Mockito.verifyNoInteractions(fraudAlertService);
 
         Mockito.verify(idempotencyService)
                 .release("evento-004");
@@ -295,7 +318,7 @@ class TransactionConsumerTest {
     }
 
     @Test
-    void deveRegistrarMetricasQuandoTransacaoForSuspeita() {
+    void deveRegistrarMetricasEEnviarAlertaQuandoTransacaoForSuspeita() {
 
         // Arrange
         IdempotencyService idempotencyService =
@@ -306,6 +329,9 @@ class TransactionConsumerTest {
 
         FraudMetrics fraudMetrics =
                 Mockito.mock(FraudMetrics.class);
+
+        FraudAlertService fraudAlertService =
+                Mockito.mock(FraudAlertService.class);
 
         Timer.Sample sample =
                 Mockito.mock(Timer.Sample.class);
@@ -335,10 +361,13 @@ class TransactionConsumerTest {
                         "Transação acima do limite"
                 );
 
+        List<FraudRuleResult> resultados =
+                List.of(resultadoSuspeito);
+
         when(
                 fraudRuleEngine.evaluate(event)
         ).thenReturn(
-                List.of(resultadoSuspeito)
+                resultados
         );
 
         when(
@@ -351,7 +380,8 @@ class TransactionConsumerTest {
                 new TransactionConsumer(
                         idempotencyService,
                         fraudRuleEngine,
-                        fraudMetrics
+                        fraudMetrics,
+                        fraudAlertService
                 );
 
         // Act
@@ -369,6 +399,12 @@ class TransactionConsumerTest {
                         "TRANSACAO_VALOR_ALTO"
                 );
 
+        Mockito.verify(fraudAlertService)
+                .enviarAlertas(
+                        event,
+                        resultados
+                );
+
         Mockito.verify(fraudMetrics)
                 .finalizarProcessamento(sample);
 
@@ -377,7 +413,7 @@ class TransactionConsumerTest {
     }
 
     @Test
-    void deveRegistrarUmaTransacaoSuspeitaEContabilizarTodasAsRegrasDisparadas() {
+    void deveEnviarUmAlertaEContabilizarTodasAsRegrasDisparadas() {
 
         // Arrange
         IdempotencyService idempotencyService =
@@ -388,6 +424,9 @@ class TransactionConsumerTest {
 
         FraudMetrics fraudMetrics =
                 Mockito.mock(FraudMetrics.class);
+
+        FraudAlertService fraudAlertService =
+                Mockito.mock(FraudAlertService.class);
 
         Timer.Sample sample =
                 Mockito.mock(Timer.Sample.class);
@@ -424,13 +463,16 @@ class TransactionConsumerTest {
                         "Transação realizada em horário incomum"
                 );
 
-        when(
-                fraudRuleEngine.evaluate(event)
-        ).thenReturn(
+        List<FraudRuleResult> resultados =
                 List.of(
                         regraValorAlto,
                         regraHorarioIncomum
-                )
+                );
+
+        when(
+                fraudRuleEngine.evaluate(event)
+        ).thenReturn(
+                resultados
         );
 
         when(
@@ -443,7 +485,8 @@ class TransactionConsumerTest {
                 new TransactionConsumer(
                         idempotencyService,
                         fraudRuleEngine,
-                        fraudMetrics
+                        fraudMetrics,
+                        fraudAlertService
                 );
 
         // Act
@@ -464,6 +507,14 @@ class TransactionConsumerTest {
                 .registrarRegraSuspeita(
                         "TRANSACAO_HORARIO_INCOMUM"
                 );
+
+        Mockito.verify(
+                fraudAlertService,
+                Mockito.times(1)
+        ).enviarAlertas(
+                event,
+                resultados
+        );
 
         Mockito.verify(
                 fraudMetrics,
